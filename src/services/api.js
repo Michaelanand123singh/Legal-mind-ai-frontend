@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://legal-ai-backend-662562396632.us-central1.run.app/api/';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://legal-ai-backend-662562396632.us-central1.run.app';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

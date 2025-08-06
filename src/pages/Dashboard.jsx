@@ -13,17 +13,53 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Fetch data with individual error handling
+        const statsPromise = learningAPI.getLearningStats().catch(err => {
+          console.warn('Learning stats failed:', err);
+          return {
+            total_lessons: 6,
+            completed_lessons: 0,
+            completion_rate: 0.0
+          };
+        });
+
+        const sessionsPromise = chatAPI.getChatSessions().catch(err => {
+          console.warn('Chat sessions failed:', err);
+          return { sessions: [] };
+        });
+
+        const analysesPromise = casesAPI.getUserAnalyses().catch(err => {
+          console.warn('User analyses failed:', err);
+          return { analyses: [] };
+        });
+
         const [statsData, sessionsData, analysesData] = await Promise.all([
-          learningAPI.getLearningStats(),
-          chatAPI.getChatSessions(),
-          casesAPI.getUserAnalyses(),
+          statsPromise,
+          sessionsPromise,
+          analysesPromise
         ]);
 
+        // Set stats safely
         setStats(statsData);
-        setRecentSessions(sessionsData.slice(0, 3));
-        setRecentAnalyses(analysesData.analyses?.slice(0, 3) || []);
+
+        // Fix: sessionsData is an object {sessions: []}
+        const sessions = sessionsData?.sessions || [];
+        setRecentSessions(Array.isArray(sessions) ? sessions.slice(0, 3) : []);
+
+        // Fix: analysesData is an object {analyses: []}
+        const analyses = analysesData?.analyses || [];
+        setRecentAnalyses(Array.isArray(analyses) ? analyses.slice(0, 3) : []);
+
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
+        // Set safe defaults
+        setStats({
+          total_lessons: 6,
+          completed_lessons: 0,
+          completion_rate: 0.0
+        });
+        setRecentSessions([]);
+        setRecentAnalyses([]);
       } finally {
         setLoading(false);
       }
@@ -100,25 +136,25 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary-500 mb-1">
-                {stats.completed_lessons}
+                {stats.completed_lessons || 0}
               </div>
               <div className="text-sm text-gray-600">Lessons Completed</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-500 mb-1">
-                {stats.total_lessons}
+                {stats.total_lessons || 0}
               </div>
               <div className="text-sm text-gray-600">Total Lessons</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-500 mb-1">
-                {Math.round(stats.completion_rate)}%
+                {Math.round(stats.completion_rate || 0)}%
               </div>
               <div className="text-sm text-gray-600">Completion Rate</div>
             </div>
           </div>
           <div className="mt-4">
-            <ProgressBar progress={stats.completion_rate} showPercentage />
+            <ProgressBar progress={stats.completion_rate || 0} showPercentage />
           </div>
         </div>
       )}
@@ -135,12 +171,15 @@ const Dashboard = () => {
           {recentSessions.length > 0 ? (
             <div className="space-y-3">
               {recentSessions.map((session, index) => (
-                <div key={index} className="border-l-4 border-primary-500 pl-4 py-2">
+                <div key={session.id || index} className="border-l-4 border-primary-500 pl-4 py-2">
                   <div className="text-sm font-medium text-gray-900">
                     {session.topic || 'General Discussion'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(session.updated_at).toLocaleDateString()}
+                    {session.updated_at 
+                      ? new Date(session.updated_at).toLocaleDateString()
+                      : new Date().toLocaleDateString()
+                    }
                   </div>
                 </div>
               ))}
@@ -167,12 +206,15 @@ const Dashboard = () => {
           {recentAnalyses.length > 0 ? (
             <div className="space-y-3">
               {recentAnalyses.map((analysis, index) => (
-                <div key={index} className="border-l-4 border-green-500 pl-4 py-2">
+                <div key={analysis.id || index} className="border-l-4 border-green-500 pl-4 py-2">
                   <div className="text-sm font-medium text-gray-900">
-                    Case Analysis #{index + 1}
+                    {analysis.title || `Case Analysis #${index + 1}`}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date().toLocaleDateString()}
+                    {analysis.created_at 
+                      ? new Date(analysis.created_at).toLocaleDateString()
+                      : new Date().toLocaleDateString()
+                    }
                   </div>
                 </div>
               ))}

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://legal-ai-backend-662562396632.us-central1.run.app/';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://legal-ai-backend-662562396632.us-central1.run.app/api/';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -97,10 +97,29 @@ export const learningAPI = {
 
 // Search API
 export const searchAPI = {
-  search: async (query, type = 'all') => {
-    const response = await api.get('/search/', {
-      params: { q: query, type },
+  searchCases: async (query, area = null, limit = 10) => {
+    const response = await api.get('/search/cases', {
+      params: { q: query, area, limit },
     });
+    return response.data;
+  },
+
+  searchStatutes: async (query, jurisdiction = null) => {
+    const response = await api.get('/search/statutes', {
+      params: { q: query, jurisdiction },
+    });
+    return response.data;
+  },
+
+  getSearchSuggestions: async (query) => {
+    const response = await api.get('/search/suggest', {
+      params: { q: query },
+    });
+    return response.data;
+  },
+
+  getTrendingSearches: async () => {
+    const response = await api.get('/search/trending');
     return response.data;
   },
 };
